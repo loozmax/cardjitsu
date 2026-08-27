@@ -6,7 +6,7 @@
    левый угол спрайта, как в оригинале.
    ============================================================ */
 
-const BUILD = 'v20';
+const BUILD = 'v21';
 const EL_ICON = { f: '🔥', w: '💧', s: '❄️' };
 const EL_NAME = { f: 'Огонь', w: 'Вода', s: 'Снег' };
 
@@ -1250,7 +1250,12 @@ async function offlineStatus(el) {
   try {
     if (!('caches' in window) || !navigator.serviceWorker) return;
     const reg = await navigator.serviceWorker.getRegistration();
-    if (!reg) return;
+    if (!reg) {
+      // SW ещё регистрируется (или это http-адрес — тогда молча выходим)
+      if (location.protocol === 'https:' || location.hostname === 'localhost')
+        setTimeout(() => { if (el.isConnected) offlineStatus(el); }, 3000);
+      return;
+    }
     const files = await fetch('assets/filelist.json').then(r => r.json());
     const need = files.length + 10;
     const tick = async () => {
