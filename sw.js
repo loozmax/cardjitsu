@@ -1,6 +1,7 @@
-/* Оффлайн-кэш. Ядро — всегда; assets/ — на лету, а если есть
-   assets/filelist.json (см. README), то целиком при установке. */
-const VERSION = 'cj-v19-opacity';
+/* Оффлайн-кэш. Ядро — всегда; assets/ — целиком при установке по
+   assets/filelist.json (с ретраями; недокачка = установка не удалась,
+   браузер повторит её при следующем заходе). */
+const VERSION = 'cj-v20-offline';
 const CORE = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
   'js/cards.js', 'js/engine.js', 'js/ai.js', 'js/ui.js',
@@ -16,13 +17,29 @@ self.addEventListener('install', e => {
   e.waitUntil((async () => {
     const cache = await caches.open(VERSION);
     await cache.addAll(CORE);
+    let files = null;
     try {
       const res = await fetch('assets/filelist.json');
-      if (res.ok) {
-        const files = await res.json();
-        await Promise.all(files.map(f => cache.add(f).catch(() => {})));
-      }
+      if (res.ok) files = await res.json();
     } catch (err) { /* списка нет — кэшируем ассеты по мере обращения */ }
+    if (files) {
+      await cache.add('assets/filelist.json').catch(() => {});
+      const queue = files.slice();
+      let failed = 0;
+      const worker = async () => {
+        while (queue.length) {
+          const f = queue.pop();
+          if (await cache.match(f)) continue;
+          let ok = false;
+          for (let t = 0; t < 3 && !ok; t++) {
+            try { await cache.add(f); ok = true; } catch (err) {}
+          }
+          if (!ok) failed++;
+        }
+      };
+      await Promise.all(Array.from({ length: 8 }, worker));
+      if (failed) throw new Error('offline cache incomplete: ' + failed);
+    }
     self.skipWaiting();
   })());
 });
@@ -39,7 +56,8 @@ self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
   e.respondWith((async () => {
-    const cached = await caches.match(e.request);
+    // ignoreSearch: страница просит js/ui.js?v=NN, в кэше лежит js/ui.js
+    const cached = await caches.match(e.request, { ignoreSearch: true });
     if (cached) return cached;
     try {
       const res = await fetch(e.request);
