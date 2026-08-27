@@ -6,7 +6,7 @@
    левый угол спрайта, как в оригинале.
    ============================================================ */
 
-const BUILD = 'v19';
+const BUILD = 'v20';
 const EL_ICON = { f: '🔥', w: '💧', s: '❄️' };
 const EL_NAME = { f: 'Огонь', w: 'Вода', s: 'Снег' };
 
@@ -398,10 +398,17 @@ function patchSprite(body, hideNames, cxMap) {
     let keep = true;
     if (code === 26) {
       const info = parsePlace2(body, off + hdr, len);
+      // как setColor в клиенте: цвет привязан к ИНСТАНСУ, не к глубине —
+      // когда на глубину ставится новый объект (напр. лавина снега после
+      // body_mc), окраска/скрытие этой глубины сбрасываются
+      if (info.flags & 0x02) {
+        dropDepths.delete(info.depth);
+        delete cxDepths[info.depth];
+      }
       if (info.name && hideNames.has(info.name)) {
         dropDepths.add(info.depth);
         keep = false;
-      } else if (dropDepths.has(info.depth) && !(info.flags & 0x02)) {
+      } else if (dropDepths.has(info.depth)) {
         keep = false;
       } else {
         if (info.name && cxMap[info.name] !== undefined)
@@ -1238,6 +1245,28 @@ window.addEventListener('resize', fitStageSoon);
 if (window.visualViewport)
   window.visualViewport.addEventListener('resize', fitStageSoon);
 
+/* индикатор готовности офлайна: сколько файлов уже в кэше SW */
+async function offlineStatus(el) {
+  try {
+    if (!('caches' in window) || !navigator.serviceWorker) return;
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) return;
+    const files = await fetch('assets/filelist.json').then(r => r.json());
+    const need = files.length + 10;
+    const tick = async () => {
+      if (!el.isConnected) return;
+      const keys = await caches.keys();
+      const key = keys.filter(k => k.startsWith('cj-')).sort().pop();
+      let n = 0;
+      if (key) n = (await (await caches.open(key)).keys()).length;
+      if (n >= need) { el.textContent = '✓ офлайн готов'; return; }
+      el.textContent = '⬇ офлайн: ' + Math.min(99, Math.round(n / need * 100)) + '%';
+      setTimeout(tick, 4000);
+    };
+    tick();
+  } catch (e) {}
+}
+
 /* ---------- главный экран: сцена Сэнсэя + разделы (стиль CP) ---------- */
 const SENSEI_HAIKU = [
   'Огонь, вода, снег.\nСтихии ходят по кругу.\nНачнём же урок.',
@@ -1319,7 +1348,10 @@ function renderHome() {
   const rs = h('a', '', 'Сброс'); rs.onclick = resetSave;
   const ver = h('span', '', BUILD);
   ver.style.cssText = 'opacity:.4;';
-  foot.append(ex, im, rs, ver);
+  const off = h('span', '', '');
+  off.style.cssText = 'opacity:.5;';
+  foot.append(ex, im, rs, ver, off);
+  offlineStatus(off);
   stage.append(foot);
 
   fitStageSoon();
