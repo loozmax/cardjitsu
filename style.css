@@ -323,3 +323,13 @@ button { font: inherit; }
   padding: 4px 10px calc(10px + env(safe-area-inset-bottom)); align-content: flex-start;
   justify-content: center;
 }
+
+/* лоадер нативного боя */
+.nat-load { color: #5a3d1e; font-family: 'Burbank', sans-serif; }
+.nat-loadtxt { font-size: 22px; text-shadow: 0 1px 0 #fff; }
+.nat-spin {
+  width: 54px; height: 54px; border-radius: 50%;
+  border: 7px solid rgba(90,61,30,.25); border-top-color: #e8892e;
+  animation: nat-rot .8s linear infinite;
+}
+@keyframes nat-rot { to { transform: rotate(360deg); } }

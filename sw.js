@@ -1,7 +1,7 @@
 /* Оффлайн-кэш. Ядро — всегда; assets/ — целиком при установке по
    assets/filelist.json (с ретраями; недокачка = установка не удалась,
    браузер повторит её при следующем заходе). */
-const VERSION = 'cj-v22-native';
+const VERSION = 'cj-v23-native';
 const CORE = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
   'js/cards.js', 'js/engine.js', 'js/ai.js', 'js/ui.js',
@@ -37,7 +37,8 @@ self.addEventListener('install', e => {
           if (!ok) failed++;
         }
       };
-      await Promise.all(Array.from({ length: 8 }, worker));
+      // 3 потока: оставляем канал игре при первом заходе
+      await Promise.all(Array.from({ length: 3 }, worker));
       if (failed) throw new Error('offline cache incomplete: ' + failed);
     }
     self.skipWaiting();
