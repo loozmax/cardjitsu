@@ -6,7 +6,7 @@
    левый угол спрайта, как в оригинале.
    ============================================================ */
 
-const BUILD = 'v22';
+const BUILD = 'v23';
 const EL_ICON = { f: '🔥', w: '💧', s: '❄️' };
 const EL_NAME = { f: 'Огонь', w: 'Вода', s: 'Снег' };
 
@@ -557,12 +557,28 @@ function renderNativeMatch() {
   const wrap = h('div', 'mwrap');
   const host = h('div', '');
   host.id = 'native-host';
-  host.style.cssText = 'width:760px;height:480px;position:relative;';
+  host.style.cssText = 'width:760px;height:480px;position:relative;' +
+    "background:url('assets/ui/bg.jpg') 0 0 / 760px 480px no-repeat;";
+  // лоадер поверх фона додзё, пока Ruffle и бои грузятся
+  const load = h('div', 'nat-load',
+    '<div class="nat-spin"></div><div class="nat-loadtxt">Загрузка боя…</div>');
+  load.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;' +
+    'align-items:center;justify-content:center;gap:1em;z-index:5;';
+  host.append(load);
   wrap.append(host);
   root.append(wrap);
-  // хотспот выхода поверх (крестик у клиента свой, но добавим страховку жестом назад)
-  NB.start(host, S.native.mode).catch(e => {
-    host.append(h('div', '', '<p style="color:#fff;padding:1em">Не удалось запустить клиент. Обнови страницу.</p>'));
+  NB.start(host, S.native.mode).then(() => {
+    // прячем лоадер, когда матч реально пошёл (пришёл handshake)
+    const gone = setInterval(() => {
+      if (!load.isConnected) return clearInterval(gone);
+      const st = NB.state && NB.state();
+      if (host.querySelector('ruffle-player') && st && st.round > 0) {
+        load.remove(); clearInterval(gone);
+      }
+    }, 300);
+    setTimeout(() => load.remove(), 30000);
+  }).catch(e => {
+    load.innerHTML = '<div class="nat-loadtxt">Не удалось запустить бой.<br>Обнови страницу.</div>';
     console.error('native start failed', e);
   });
   fitStageSoon();
