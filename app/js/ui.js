@@ -6,7 +6,7 @@
    левый угол спрайта, как в оригинале.
    ============================================================ */
 
-const BUILD = 'v25';
+const BUILD = 'v26';
 const EL_ICON = { f: '🔥', w: '💧', s: '❄️' };
 const EL_NAME = { f: 'Огонь', w: 'Вода', s: 'Снег' };
 
@@ -595,9 +595,32 @@ function renderNativeMatch() {
       }
     }, 300);
     setTimeout(() => load.remove(), 30000);
-  }).catch(e => {
-    load.innerHTML = '<div class="nat-loadtxt">Не удалось запустить бой.<br>Обнови страницу.</div>';
+  }).catch(async e => {
     console.error('native start failed', e);
+    // снимаем плеер с панелью паники Ruffle — оставляем чистый фон додзё
+    const p = host.querySelector('ruffle-player');
+    if (p) try { p.remove(); } catch (err) {}
+    // типовая причина: офлайн-кэш ещё не докачан (свежая установка или
+    // обновление), а сеть слабая — большой .wasm обрывается. В PWA нет
+    // кнопки «обновить», поэтому даём повтор и показываем прогресс кэша.
+    let pct = null;
+    try {
+      const keys = await caches.keys();
+      const key = keys.filter(k => k.startsWith('cj-')).sort().pop();
+      if (key) {
+        const n = (await (await caches.open(key)).keys()).length;
+        const files = await fetch('assets/filelist.json').then(r => r.json());
+        pct = Math.round(n / files.length * 100);
+      }
+    } catch (err) {}
+    const note = pct !== null && pct < 100
+      ? `<br>Игра ещё загружается (${Math.min(99, pct)}%) — подожди немного.` : '';
+    load.innerHTML = '<div class="nat-loadtxt">Не удалось запустить бой.' + note + '</div>';
+    // Ruffle кэширует проваленную инициализацию wasm — мягкий повтор
+    // невозможен, только перезагрузка страницы (из кэша это мгновенно)
+    const btn = h('button', 'btn primary', 'Повторить');
+    btn.onclick = () => location.reload();
+    load.append(btn);
   });
   fitStageSoon();
   return root;
