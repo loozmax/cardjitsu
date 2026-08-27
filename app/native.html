@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Card-Jitsu native</title>
+  <style>
+    body { margin: 0; background: #14181f; }
+    #host { width: 760px; height: 480px; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <div id="host"></div>
+  <script>
+    let _ruffleReady = null;
+    function loadRuffle() {
+      if (_ruffleReady) return _ruffleReady;
+      _ruffleReady = new Promise(resolve => {
+        window.RufflePlayer = window.RufflePlayer || {};
+        window.RufflePlayer.config = {
+          autoplay: 'on', unmuteOverlay: 'hidden', contextMenu: 'off',
+          splashScreen: false, wmode: 'transparent', backgroundColor: null,
+          logLevel: 'info', showSwfDownload: false, allowScriptAccess: true
+        };
+        const s = document.createElement('script');
+        s.src = 'vendor/ruffle/ruffle.js';
+        s.onload = () => resolve(window.RufflePlayer);
+        s.onerror = () => resolve(null);
+        document.head.append(s);
+      });
+      return _ruffleReady;
+    }
+  </script>
+  <script src="js/cards.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/native_bridge.js"></script>
+  <script>
+    const qs = new URLSearchParams(location.search);
+    const mode = Number(qs.get('mode') || '1');
+    if (!qs.has('noauto'))
+      NB.start(document.getElementById('host'), mode)
+        .then(() => console.log('[page] player load resolved'))
+        .catch(e => console.error('[page] start failed', e));
+  </script>
+</body>
+</html>

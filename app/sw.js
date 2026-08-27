@@ -1,7 +1,7 @@
 /* Оффлайн-кэш. Ядро — всегда; assets/ — целиком при установке по
    assets/filelist.json (с ретраями; недокачка = установка не удалась,
    браузер повторит её при следующем заходе). */
-const VERSION = 'cj-v21-offline';
+const VERSION = 'cj-v22-native';
 const CORE = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
   'js/cards.js', 'js/engine.js', 'js/ai.js', 'js/ui.js',

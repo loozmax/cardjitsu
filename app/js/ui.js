@@ -6,7 +6,7 @@
    левый угол спрайта, как в оригинале.
    ============================================================ */
 
-const BUILD = 'v21';
+const BUILD = 'v22';
 const EL_ICON = { f: '🔥', w: '💧', s: '❄️' };
 const EL_NAME = { f: 'Огонь', w: 'Вода', s: 'Снег' };
 
@@ -510,7 +510,67 @@ function sideOpts(isMe) {
     : { rank: ms.oppRank, sensei: ms.vsSensei };
 }
 
+/* ---------- нативный матч: оригинальный card.swf через мост ---------- */
+// проверяется в момент вызова: native_bridge.js грузится после ui.js
+function useNative() { return typeof NB !== 'undefined'; }
+
+function startNativeMatch(vsSensei) {
+  S.native = { vsSensei, mode: vsSensei ? 3 : 1, over: false };
+  S.match = null;
+  S.matchDom = null;
+  S.screen = 'match';
+  startMusic();
+  render();
+}
+
+// колбэки из моста (native_bridge.js -> cjShell)
+window.nativeMusic = a => { if (a === 'start') startMusic(); else if (a === 'stop') stopMusic(); };
+window.nativeClose = () => {
+  if (!S.native) return;
+  if (NB.save) { const sv = NB.save(); if (sv) S.save = sv; }
+  S.save = loadSave();
+  NB.stop();
+  S.native = null;
+  stopMusic();
+  S.screen = 'home';
+  render();
+};
+window.nativePrompt = (kind, msg, idx) => {
+  // конец матча / выход — оригинальный клиент сам уводит через showPrompt("ok")
+  // показываем короткий CP-оверлей и подтверждаем
+  const ov = h('div', 'overlay');
+  const box = h('div', 'obox');
+  box.append(h('div', '', `<p>${msg || ''}</p>`));
+  const ok = h('button', 'btn primary', 'Ок');
+  ok.onclick = () => {
+    ov.remove();
+    const p = document.querySelector('#native-host ruffle-player');
+    if (p) { try { p.cjPromptOk(idx); } catch (e) {} }
+  };
+  box.append(h('div', 'obtns', ''), ok);
+  ov.append(box);
+  document.body.append(ov);
+};
+
+function renderNativeMatch() {
+  const root = h('div', 'screen match');
+  const wrap = h('div', 'mwrap');
+  const host = h('div', '');
+  host.id = 'native-host';
+  host.style.cssText = 'width:760px;height:480px;position:relative;';
+  wrap.append(host);
+  root.append(wrap);
+  // хотспот выхода поверх (крестик у клиента свой, но добавим страховку жестом назад)
+  NB.start(host, S.native.mode).catch(e => {
+    host.append(h('div', '', '<p style="color:#fff;padding:1em">Не удалось запустить клиент. Обнови страницу.</p>'));
+    console.error('native start failed', e);
+  });
+  fitStageSoon();
+  return root;
+}
+
 function startMatch(vsSensei) {
+  if (useNative()) return startNativeMatch(vsSensei);
   const save = S.save;
   const pool = collectionCounter(save);
   let m, mySeat, oppSeat, oppName, oppRank;
@@ -1480,6 +1540,12 @@ function resetSave() {
 
 function render() {
   const app = $app();
+  if (S.screen === 'match' && S.native) {
+    if (app.querySelector('#native-host')) return;   // уже смонтирован
+    app.innerHTML = '';
+    app.append(renderNativeMatch());
+    return;
+  }
   if (S.screen === 'match' && S.match) {
     if (S.matchDom && app.contains(S.matchDom.root)) {
       updateMatchView();
@@ -1490,6 +1556,7 @@ function render() {
     return;
   }
   S.matchDom = null;
+  if (S.native && typeof NB !== 'undefined') { NB.stop(); S.native = null; }
   stopMusic();
   app.innerHTML = '';
   if (S.screen === 'shop') app.append(renderShop());
