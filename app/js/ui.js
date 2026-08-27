@@ -6,7 +6,7 @@
    левый угол спрайта, как в оригинале.
    ============================================================ */
 
-const BUILD = 'v23';
+const BUILD = 'v24';
 const EL_ICON = { f: '🔥', w: '💧', s: '❄️' };
 const EL_NAME = { f: 'Огонь', w: 'Вода', s: 'Снег' };
 
@@ -535,6 +535,24 @@ window.nativeClose = () => {
   S.screen = 'home';
   render();
 };
+// текст речевого пузыря церемонии (Ruffle не рисует кириллицу в SWF)
+window.nativeSpeech = txt => {
+  const host = document.getElementById('native-host');
+  if (!host) return;
+  let el = host.querySelector('.nat-speech');
+  if (!txt) { if (el) el.remove(); return; }
+  if (!el) {
+    el = h('div', 'nat-speech');
+    // координаты пузыря message в системе 760x480 (масштабируется с host)
+    el.style.cssText = 'position:absolute;left:352px;top:26px;width:492px;height:74px;' +
+      'display:flex;align-items:center;justify-content:center;text-align:center;' +
+      "font-family:'Comicrazy','Burbank',sans-serif;color:#222;font-size:22px;" +
+      'line-height:1.1;padding:4px 18px;box-sizing:border-box;z-index:10;pointer-events:none;';
+    host.append(el);
+  }
+  el.textContent = txt;
+};
+
 window.nativePrompt = (kind, msg, idx) => {
   // конец матча / выход — оригинальный клиент сам уводит через showPrompt("ok")
   // показываем короткий CP-оверлей и подтверждаем
@@ -1333,15 +1351,16 @@ async function offlineStatus(el) {
       return;
     }
     const files = await fetch('assets/filelist.json').then(r => r.json());
-    const need = files.length + 10;
+    const need = files.length;   // кэш ещё содержит CORE — покрывает пару стыков
     const tick = async () => {
       if (!el.isConnected) return;
       const keys = await caches.keys();
       const key = keys.filter(k => k.startsWith('cj-')).sort().pop();
       let n = 0;
       if (key) n = (await (await caches.open(key)).keys()).length;
-      if (n >= need) { el.textContent = '✓ офлайн готов'; return; }
-      el.textContent = '⬇ офлайн: ' + Math.min(99, Math.round(n / need * 100)) + '%';
+      const pct = Math.round(n / need * 100);
+      if (pct >= 100) { el.textContent = '✓ офлайн готов'; return; }
+      el.textContent = '⬇ офлайн: ' + Math.min(99, pct) + '%';
       setTimeout(tick, 4000);
     };
     tick();
