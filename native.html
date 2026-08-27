@@ -35,6 +35,24 @@
   <script src="js/ai.js"></script>
   <script src="js/native_bridge.js"></script>
   <script>
+    // минимальный DOM-пузырь для тестовой страницы (host без масштаба)
+    window.nativeSpeech = txt => {
+      const host = document.getElementById('host');
+      let el = host.querySelector('.nat-speech');
+      if (!txt) { if (el) el.remove(); return; }
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'nat-speech';
+        el.style.cssText = 'position:absolute;left:352px;top:26px;width:492px;height:74px;'
+          + 'display:flex;align-items:center;justify-content:center;text-align:center;'
+          + "font-family:'Comicrazy',sans-serif;color:#222;font-size:22px;padding:4px 18px;box-sizing:border-box;z-index:10;";
+        host.style.position = 'relative';
+        host.append(el);
+      }
+      el.textContent = txt;
+    };
+  </script>
+  <script>
     const qs = new URLSearchParams(location.search);
     const mode = Number(qs.get('mode') || '1');
     if (!qs.has('noauto'))

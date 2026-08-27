@@ -172,8 +172,15 @@ const NB = (() => {
     if (awardRank) recv('cza', [0, awardRank]);   // клиент проведёт церемонию
   }
 
+  // тестовый форс церемонии без матча: __cjForceAward(rank)
+  window.__cjForceAward = rank => {
+    recv('czo', [0, 0, st.oppSeat]);      // соперник победил, банк пуст -> stateOver
+    setTimeout(() => recv('cza', [0, rank]), 200);
+  };
+
   // ---- вызовы из SWF ----
   window.cjDiag = s => log('diag:', s);
+  window.cjSpeech = txt => { if (window.nativeSpeech) window.nativeSpeech(txt); };
   window.cjReady = () => log('shim ready');
   window.cjClientLoaded = () => log('client classes loaded');
   window.cjTexts = () => RU_TEXTS;
