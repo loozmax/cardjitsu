@@ -1,0 +1,325 @@
+/* Тихая оболочка в духе додзё: тушь + тёплая бумага + красная печать.
+   Звёзды тут — карты из ассетов; оболочка им не мешает. */
+:root {
+  --ink: #14181f;
+  --ink2: #1c222c;
+  --paper: #e8e2d4;
+  --paper-dim: #a9a291;
+  --seal: #c2452d;
+  --gold: #c9a34a;
+  --card-r: 10px;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; padding: 0; height: 100dvh; overflow: hidden;
+  background: var(--ink); color: var(--paper);
+  font-family: -apple-system, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  touch-action: manipulation; -webkit-user-select: none; user-select: none;
+}
+#app { height: 100dvh; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+button { font: inherit; }
+
+#rotate {
+  display: none; position: fixed; inset: 0; z-index: 99;
+  background: var(--ink); color: var(--paper);
+  align-items: center; justify-content: center;
+  font-size: 18px; letter-spacing: .06em; text-align: center; padding: 24px;
+}
+@media (orientation: portrait) { #rotate { display: flex; } }
+
+.screen { height: 100%; display: flex; flex-direction: column; }
+
+/* ---------- главный экран: сцена Сэнсэя + разделы в стиле CP ---------- */
+.match.home { background: #2b1e10; }
+.home-coins {
+  position: absolute; right: 14px; top: 12px; z-index: 5;
+  background: #efe6d2; border: 3px solid #9a6a3a; outline: 2px solid #5f3d1d;
+  border-radius: 6px; padding: 3px 12px;
+  font-family: 'Burbank', sans-serif; font-weight: 700; font-size: 16px; color: #3d2c17;
+}
+.home-coins .coin {
+  display: inline-block; width: 13px; height: 13px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe98c, #e0a825 70%, #9a6a12);
+  border: 1px solid #7a5510; vertical-align: -1px; margin-right: 5px;
+}
+.home-progress {
+  position: absolute; left: 14px; top: 12px; z-index: 5; width: 210px;
+  background: #efe6d2; border: 3px solid #9a6a3a; outline: 2px solid #5f3d1d;
+  border-radius: 6px; padding: 7px 12px 9px;
+  font-family: 'Comicrazy', 'Burbank', sans-serif; color: #3d2c17;
+}
+.home-progress .bp-name { font-size: 13px; margin-bottom: 5px; }
+.home-progress .belt-strip {
+  position: relative; height: 11px; border-radius: 6px; border: 1px solid #00000055;
+  box-shadow: inset 0 -3px 5px rgba(0,0,0,.28);
+}
+.home-progress .belt-knot {
+  position: absolute; top: -3px; width: 13px; height: 17px; border-radius: 4px;
+  background: inherit; filter: brightness(.82); border: 1px solid #00000055;
+  transition: left .5s ease;
+}
+.home-progress .bp-line { margin-top: 6px; font-size: 10.5px; color: #6b5335; }
+.home-foot {
+  position: absolute; left: 0; right: 0; bottom: 4px; z-index: 5; text-align: center;
+  font-family: 'Comicrazy', 'Burbank', sans-serif; font-size: 11px; color: #a08556;
+}
+.home-foot a { color: #a08556; text-decoration: underline; cursor: pointer; margin: 0 6px; }
+.menu { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.btn {
+  background: var(--ink2); color: var(--paper); border: 1px solid #333c4a;
+  border-radius: 10px; padding: 10px 20px; font-size: 15px; letter-spacing: .04em;
+  cursor: pointer;
+}
+.btn:active { transform: scale(.97); }
+.btn.primary { background: var(--seal); border-color: var(--seal); color: #fff; }
+.btn:disabled { opacity: .4; }
+.foot { font-size: 12px; color: var(--paper-dim); display: flex; gap: 8px; }
+.foot a { color: var(--paper-dim); text-decoration: underline; cursor: pointer; }
+
+/* ---------- карта (оригинальные ассеты CP: рамка + стихия + число + арт) ----------
+   Базовая геометрия: рамка 235x265, шрифт числа — cpBurbankSmallBold.
+   Размер задаётся через --cw (ширина), всё внутри в процентах. */
+@font-face {
+  font-family: 'Burbank'; src: url('assets/fonts/burbank_bold.ttf') format('truetype');
+  font-weight: 700; font-display: block;
+}
+@font-face {
+  font-family: 'Comicrazy'; src: url('assets/fonts/comicrazy.ttf') format('truetype');
+  font-display: block;
+}
+.card {
+  position: relative; width: var(--cw, 17dvh); aspect-ratio: 235 / 265; flex: none;
+}
+.card.small { --cw: 11.5dvh; }
+.card.dim { opacity: .35; }
+.card .face { position: absolute; inset: 0; }
+.card .art {
+  position: absolute; left: 3.5%; top: 3%; width: 93%; height: 91%;
+  object-fit: cover; border-radius: 7% / 6.2%; background: #fff;
+}
+.card.noart .art { visibility: hidden; }
+.card.noart .face::before {
+  content: ''; position: absolute; left: 3.5%; top: 3%; width: 93%; height: 91%;
+  border-radius: 7% / 6.2%; background: radial-gradient(circle at 50% 45%, #fff 0%, #cfd3d8 100%);
+}
+.card .frame { position: absolute; inset: 0; width: 100%; height: 100%; }
+.card .elem { position: absolute; left: 4.2%; top: 3.4%; width: 23%; }
+.card .pt {
+  position: absolute; left: 0; top: 31.5%; width: 26.5%; text-align: center;
+  font-family: 'Burbank', sans-serif; font-weight: 700; color: #000;
+  font-size: calc(var(--cw, 17dvh) * .215); line-height: 1;
+}
+/* облако-окантовка боевых карт (спрайтшит 9 кадров) и свечение паверов */
+.card .cloud {
+  position: absolute; left: -9%; top: -8%; width: 118%; height: 116%; z-index: -1;
+  background-size: 900% 100%; background-repeat: no-repeat;
+  background-image: url('assets/ui/cloud.png');
+  animation: cloudsteps 1.4s steps(9) infinite;
+}
+.card.glow-r .cloud { background-image: url('assets/ui/glow_r.png'); }
+.card.glow-g .cloud { background-image: url('assets/ui/glow_g.png'); }
+.card.glow-b .cloud { background-image: url('assets/ui/glow_b.png'); }
+.card.glow-p .cloud { background-image: url('assets/ui/glow_p.png'); }
+.card.glow-o .cloud { background-image: url('assets/ui/glow_o.png'); }
+.card.glow-y .cloud { background-image: url('assets/ui/glow_y.png'); }
+@keyframes cloudsteps { to { background-position: 112.5% 0; } }
+.card.back .face, .card.back .cloud { display: none; }
+.card.back::after {
+  content: ''; position: absolute; inset: 0;
+  background: url('assets/ui/back.png') center / 100% 100% no-repeat;
+}
+.card .qty {
+  position: absolute; bottom: 3px; right: 4px; z-index: 3; font-size: 1.5dvh;
+  background: rgba(0,0,0,.6); border-radius: 6px; padding: 1px 5px; color: var(--paper);
+}
+.blockmark { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; justify-content: center; font-size: calc(var(--cw, 17dvh) * .45); }
+
+/* ---------- матч: оригинальная сцена CP 760x480 ---------- */
+.match { background: #000; position: relative; overflow: hidden; }
+.mwrap {
+  position: absolute; left: 50%; top: 50%; width: 760px; height: 480px;
+  transform: translate(-50%, -50%); transform-origin: center center;
+}
+.stage {
+  position: absolute; inset: 0; overflow: hidden;
+  background: url('assets/ui/bg.jpg') 0 0 / 760px 480px no-repeat;
+  font-family: 'Burbank', sans-serif;
+}
+.stage .layer { position: absolute; inset: 0; pointer-events: none; }
+.stage .layer > img { position: absolute; }
+.stage .flipx { transform: scaleX(-1); }
+
+/* карты на сцене: origin — верхний-левый угол рамки (как у спрайта card) */
+.stage .card {
+  position: absolute; left: 0; top: 0; margin: 0; z-index: 10;
+  transform: translate(calc(var(--x) * 1px), calc(var(--y) * 1px));
+  transition: transform .5s ease, width .5s ease;
+}
+.stage .card.pickable { cursor: pointer; pointer-events: auto; }
+.stage .card.pickable:active { filter: brightness(1.08); }
+
+/* flip вскрытия (Card.flip: сжатие рубашки, разжатие лица за 0.25с) */
+.card.flipout::after { animation: flipout .12s ease-in forwards; }
+@keyframes flipout { to { transform: scaleX(0); } }
+.card.flipin .face, .card.flipin .cloud { animation: flipin .14s ease-out; }
+@keyframes flipin { from { transform: scaleX(0); } }
+
+/* пузырь описания павера при наведении (стейт "pow" карты) */
+.card .powbubble {
+  display: none; position: absolute; left: -34px; top: -100px;
+  width: 130px; height: 93px; z-index: 50;
+  background: url('assets/ui/powbubble.svg') 0 0 / 100% 100% no-repeat;
+  padding: 10px 12px 26px; box-sizing: border-box;
+  font-family: 'Comicrazy', 'Burbank', sans-serif; font-size: 9.5px;
+  line-height: 1.15; color: #222; text-align: center; pointer-events: none;
+}
+.card.pickable:hover .powbubble { display: block; }
+.card .pbicon {
+  width: 39px; height: 26px; margin: 0 auto 2px;
+  background: url('assets/ui/powicons.png') 0 0 / 1800% 100% no-repeat;
+}
+
+/* элемент банка выигранных: кадр «thumbnail» карты (квадрат цвета + стихия),
+   геометрия из place-матриц спрайта карты, масштаб 40% */
+.winsq {
+  position: absolute; width: 41.2px; height: 39.3px; z-index: 10;
+  transform: translate(calc(var(--x) * 1px), calc(var(--y) * 1px));
+  transition: transform .5s ease;
+}
+.winsq .sq { position: absolute; inset: 0; width: 100%; height: 100%; }
+.winsq .el { position: absolute; left: 30.5%; top: 22%; width: 65.5%; }
+
+/* взведённый павер: «голая» иконка спрайта power (кадр = номер павера) */
+.powtop {
+  position: absolute; width: 77px; height: 52px; z-index: 12;
+  transform: translate(calc(var(--x) * 1px), calc(var(--y) * 1px));
+  transition: transform .8s ease, opacity .4s ease;
+  background: url('assets/ui/powicons.png') 0 0 / 1800% 100% no-repeat;
+  pointer-events: none;
+}
+
+/* медальон-таймер: точное место из place-тега сцены card.swf */
+.clockbox {
+  position: absolute; left: 341.6px; top: 300.1px; width: 87.3px; height: 87.3px;
+  pointer-events: none;
+}
+.clockbox .cface {
+  position: absolute; inset: 0;
+  background: url('assets/ui/timer.png') 0 0 / 1900% 100% no-repeat;
+}
+.clockbox .cnum {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-family: 'Burbank', sans-serif; font-weight: 700; font-size: 26px; color: #000;
+  padding-bottom: 4px;
+}
+.fx-boom {
+  position: absolute; width: 120px; height: 92px; transform: translate(-50%, -50%);
+  background: url('assets/ui/explosion.png') 0 0 / 1600% 100% no-repeat;
+  animation: boomsteps .66s steps(16) forwards; z-index: 41; pointer-events: none;
+}
+.fx-boom.big { width: 154px; height: 118px; }
+@keyframes boomsteps { to { background-position: 106.667% 0; } }
+
+.hotspot { position: absolute; background: transparent; border: 0; cursor: pointer; padding: 0; }
+.hs-help { left: 352px; top: 22px; width: 52px; height: 36px; }
+.hs-quit { left: 712px; top: 8px; width: 34px; height: 34px; }
+
+.helpview {
+  position: absolute; inset: 0; z-index: 60; background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.helpview img { max-width: 92%; max-height: 92%; }
+
+/* ---------- сцена Сэнсэя (award.swf) ---------- */
+.sensei-stage { background: url('assets/ui/sensei_scene.jpg') 0 0 / 760px 480px no-repeat; }
+.sensei-bubble {
+  position: absolute; left: 245px; top: 22px; width: 445px; height: 92px;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  font-family: 'Comicrazy', 'Burbank', sans-serif; font-size: 13px; line-height: 1.35;
+  color: #222; white-space: pre-line; padding: 2px 10px;
+}
+.sensei-menu {
+  position: absolute; left: 352px; top: 322px; width: 360px; height: 125px;
+  display: flex; flex-direction: column; justify-content: space-evenly;
+}
+.sensei-item {
+  font-family: 'Comicrazy', 'Burbank', sans-serif; font-size: 17px; color: #333;
+  padding: 2px 14px; cursor: pointer; pointer-events: auto;
+}
+.sensei-item:hover, .sensei-item:active { color: #b3441f; }
+
+/* ---------- оверлей: деревянная доска в стиле CP ---------- */
+.overlay {
+  position: fixed; inset: 0; z-index: 50; background: rgba(43, 30, 16, .55);
+  display: flex; align-items: center; justify-content: center;
+}
+.obox {
+  background: #efe6d2; color: #3d2c17;
+  border: 5px solid #9a6a3a; outline: 3px solid #5f3d1d; border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.5), inset 0 0 0 2px #c9a878;
+  padding: 18px 24px; max-width: 78vw; max-height: 84dvh; overflow-y: auto; text-align: center;
+  font-family: 'Comicrazy', 'Burbank', sans-serif;
+}
+.obox h2 { margin: 0 0 6px; letter-spacing: .18em; text-indent: .18em; font-weight: 400; color: #5f3d1d; }
+.obox h2.win { color: #2c7a2c; }
+.obox h2.lose { color: #b3441f; }
+.obox h3 { margin: 0 0 8px; color: #5f3d1d; }
+.obox p { font-size: 13px; color: #6b5335; margin: 6px 0; }
+.omethod { font-size: 13px; color: #6b5335; }
+.orewards { margin-top: 8px; font-size: 14px; }
+.orank { margin-top: 8px; color: #b3441f; font-size: 15px; }
+.obtns { display: flex; gap: 14px; justify-content: center; margin-top: 14px; }
+.obox .btn {
+  background: transparent; border: none; color: #3d2c17;
+  font-family: 'Comicrazy', 'Burbank', sans-serif; font-size: 16px; padding: 4px 10px;
+}
+.obox .btn.primary { color: #b3441f; }
+.obox .btn:active { transform: scale(.96); }
+.savebox {
+  width: 60vw; height: 20dvh; background: #fffdf6; color: #3d2c17;
+  border: 2px solid #9a6a3a; border-radius: 6px; padding: 8px; font-size: 12px;
+}
+.pack-open { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+
+/* ---------- магазин / коллекция: стиль CP (пергамент + дерево) ---------- */
+.shop, .collection {
+  background: #efe6d2; color: #3d2c17;
+  font-family: 'Comicrazy', 'Burbank', sans-serif;
+}
+.header {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  background: linear-gradient(#b58756, #9a6a3a); border-bottom: 3px solid #5f3d1d;
+  box-shadow: 0 2px 5px rgba(0,0,0,.25);
+}
+.header .btn {
+  background: #efe6d2; border: 2px solid #5f3d1d; color: #3d2c17;
+  border-radius: 6px; font-family: inherit;
+}
+.btn.back { padding: 4px 14px; }
+.htitle { font-size: 17px; letter-spacing: .08em; color: #fff7e6; text-shadow: 0 1px 0 #5f3d1d; }
+.hright { margin-left: auto; font-size: 14px; color: #ffe9b0; text-shadow: 0 1px 0 #5f3d1d; }
+.pack-panel {
+  margin: auto; display: flex; flex-direction: column; align-items: center; gap: 12px;
+  background: #f7f0de; border: 4px solid #9a6a3a; outline: 3px solid #5f3d1d;
+  border-radius: 8px; padding: 20px 28px; box-shadow: 0 5px 14px rgba(0,0,0,.3);
+}
+.pack-panel .btn {
+  background: #b3441f; border: 2px solid #5f3d1d; color: #fff;
+  border-radius: 8px; font-family: inherit;
+}
+.pack-panel .btn:disabled { opacity: .45; }
+.pack-art { font-size: 8dvh; }
+.pack-info { text-align: center; font-size: 13px; color: #6b5335; line-height: 1.5; }
+.pack-info b { color: #3d2c17; font-size: 15px; }
+.filters { display: flex; gap: 6px; padding: 8px 10px 6px; }
+.fbtn {
+  background: #f7f0de; border: 2px solid #9a6a3a; color: #6b5335;
+  border-radius: 14px; padding: 3px 12px; font-size: 13px;
+  font-family: inherit;
+}
+.fbtn.on { border-color: #b3441f; color: #b3441f; background: #fff3e4; }
+.grid {
+  flex: 1; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 8px;
+  padding: 4px 10px calc(10px + env(safe-area-inset-bottom)); align-content: flex-start;
+  justify-content: center;
+}
