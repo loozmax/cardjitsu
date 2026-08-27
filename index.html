@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#14181f">
+  <title>Card-Jitsu</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css?v=19">
+</head>
+<body>
+  <div id="rotate">Поверни телефон горизонтально&nbsp;📱↔️</div>
+  <main id="app"></main>
+  <script src="js/cards.js?v=19"></script>
+  <script src="js/engine.js?v=19"></script>
+  <script src="js/ai.js?v=19"></script>
+  <script src="js/ui.js?v=19"></script>
+  <script>
+    if ('serviceWorker' in navigator && !location.hash.startsWith('#test') &&
+        (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+      // при обновлении версии страница сама перезапускается на новом кэше —
+      // иначе первый заход после обновления показывает старую версию целиком
+      var hadSW = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (hadSW) location.reload(); else hadSW = true;
+      });
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
